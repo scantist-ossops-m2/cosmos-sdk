@@ -519,34 +519,23 @@ func (s *SystemUnderTest) ForEachNodeExecAndWait(t *testing.T, cmds ...[]string)
 		for j, xargs := range cmds {
 			xargs = append(xargs, "--home", home)
 			s.Logf("Execute `%s %s`\n", s.execBinary, strings.Join(xargs, " "))
-			cmd := exec.Command( //nolint:gosec
-				locateExecutable("ls"),
-				"-la", filepath.Join(WorkDir, home),
-			)
-			out, err := cmd.CombinedOutput()
-			require.NoError(t, err, "node %d: ls:  %s", i, string(out))
-			s.Logf("Result ls: %s\n", string(out))
-
-			cmd = exec.Command( //nolint:gosec
-				locateExecutable("cat"),
-				filepath.Join(WorkDir, home, "config", "config.toml"),
-			)
-			out, err = cmd.CombinedOutput()
-			require.NoError(t, err, "node %d: cat: %s", i, string(out))
-			s.Logf("Result cat: %s\n", string(out))
-
-			cmd = exec.Command( //nolint:gosec
-				locateExecutable(s.execBinary),
-				xargs...,
-			)
-			cmd.Dir = WorkDir
-			out, err = cmd.CombinedOutput()
-			require.NoError(t, err, "node %d: %s", i, string(out))
+			out := runShellCmd(t, s.execBinary, xargs...)
 			s.Logf("Result: %s\n", string(out))
-			result[i][j] = string(out)
+			result[i][j] = out
 		}
 	})
 	return result
+}
+
+func runShellCmd(t *testing.T, cmd string, args ...string) string {
+	c := exec.Command( //nolint:gosec
+		locateExecutable(cmd),
+		args...,
+	)
+	c.Dir = WorkDir
+	out, err := c.CombinedOutput()
+	require.NoError(t, err, "exec %q: %s", cmd, string(out))
+	return string(out)
 }
 
 // startNodesAsync runs the given app cli command for all cluster nodes and returns without waiting

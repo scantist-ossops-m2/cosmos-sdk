@@ -1,4 +1,4 @@
-//go:build system_test && !linux
+//go:build system_test
 
 package systemtests
 
@@ -17,13 +17,12 @@ import (
 )
 
 func TestChainUpgrade(t *testing.T) {
-	t.Skip("deactivated until legacy artifact is available")
 	// Scenario:
 	// start a legacy chain with some state
 	// when a chain upgrade proposal is executed
 	// then the chain upgrades successfully
 
-	legacyBinary := FetchExecutable(t, "v0.50.5")
+	legacyBinary := FetchExecutable(t, "v0.50")
 	t.Logf("+++ legacy binary: %s\n", legacyBinary)
 	currentBranchBinary := sut.execBinary
 	currentInitializer := sut.testnetInitializer
@@ -104,6 +103,10 @@ func FetchExecutable(t *testing.T, version string) string {
 	if _, err := os.Stat(cacheFile); err == nil {
 		return cacheFile
 	}
-	t.Fatal("+++ version not in cache, downloading from github")
-	return ""
+	destFile := filepath.Join(cacheFolder, "simd_"+version)
+	t.Log("+++ version not in cache, downloading from docker image")
+	runShellCmd(t, "docker", "pull", "ghcr.io/cosmos/simapp:"+version)
+	runShellCmd(t, "docker", "create", "--name=ci_temp", "ghcr.io/cosmos/simapp:"+version)
+	runShellCmd(t, "docker", "cp", "ci_temp:/usr/bin/simd", destFile)
+	return destFile
 }
