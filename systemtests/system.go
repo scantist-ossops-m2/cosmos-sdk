@@ -122,7 +122,7 @@ func (s *SystemUnderTest) SetupChain() {
 
 	// modify genesis with system test defaults
 	src := filepath.Join(WorkDir, s.nodePath(0), "config", "genesis.json")
-	genesisBz, err := os.ReadFile(src)
+	genesisBz, err := os.ReadFile(src) // #nosec G304
 	if err != nil {
 		panic(fmt.Sprintf("failed to load genesis: %s", err))
 	}
@@ -520,11 +520,27 @@ func (s *SystemUnderTest) ForEachNodeExecAndWait(t *testing.T, cmds ...[]string)
 			xargs = append(xargs, "--home", home)
 			s.Logf("Execute `%s %s`\n", s.execBinary, strings.Join(xargs, " "))
 			cmd := exec.Command( //nolint:gosec
+				locateExecutable("ls"),
+				"-la", filepath.Join(WorkDir, home),
+			)
+			out, err := cmd.CombinedOutput()
+			require.NoError(t, err, "node %d: ls:  %s", i, string(out))
+			s.Logf("Result ls: %s\n", string(out))
+
+			cmd = exec.Command( //nolint:gosec
+				locateExecutable("cat"),
+				filepath.Join(WorkDir, home, "config", "config.toml"),
+			)
+			out, err = cmd.CombinedOutput()
+			require.NoError(t, err, "node %d: cat: %s", i, string(out))
+			s.Logf("Result cat: %s\n", string(out))
+
+			cmd = exec.Command( //nolint:gosec
 				locateExecutable(s.execBinary),
 				xargs...,
 			)
 			cmd.Dir = WorkDir
-			out, err := cmd.CombinedOutput()
+			out, err = cmd.CombinedOutput()
 			require.NoError(t, err, "node %d: %s", i, string(out))
 			s.Logf("Result: %s\n", string(out))
 			result[i][j] = string(out)
@@ -898,7 +914,7 @@ func copyFile(src, dest string) (*os.File, error) {
 
 // copyFilesInDir copy files in src dir to dest path
 func copyFilesInDir(src, dest string) error {
-	err := os.MkdirAll(dest, 0o755)
+	err := os.MkdirAll(dest, 0o750)
 	if err != nil {
 		return fmt.Errorf("mkdirs: %s", err)
 	}
