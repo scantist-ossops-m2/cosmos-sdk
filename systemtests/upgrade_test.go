@@ -105,8 +105,9 @@ func FetchExecutable(t *testing.T, version string) string {
 	}
 	destFile := filepath.Join(cacheFolder, "simd_"+version)
 	t.Log("+++ version not in cache, downloading from docker image")
-	runShellCmd(t, "docker", "pull", "ghcr.io/cosmos/simapp:"+version)
-	runShellCmd(t, "docker", "create", "--name=ci_temp", "ghcr.io/cosmos/simapp:"+version)
-	runShellCmd(t, "docker", "cp", "ci_temp:/usr/bin/simd", destFile)
+	t.Logf("docker pull: %s\n", runShellCmd(t, "docker", "pull", "ghcr.io/cosmos/simapp:"+version))
+	t.Logf("docker create: %s\n", runShellCmd(t, "docker", "create", "--name=ci_temp", "ghcr.io/cosmos/simapp:"+version))
+	t.Logf("docker cp: %s\n", runShellCmd(t, "docker", "cp", "ci_temp:/usr/bin/simd", destFile))
+	t.Logf("ls: %s\n", runShellCmd(t, "ls", "-la", cacheDir))
 	return destFile
 }
